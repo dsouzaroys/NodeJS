@@ -1,61 +1,44 @@
 
 const express= require('express');
+const { default: mongoose } = require('mongoose');
+const { object } = require('webidl-conversions');
+const userModel = require('../model/usermodel');
 
 const router = express.Router();
 
-const user= [
-    {
-        id:1001,
-        userName:"Roys",
-        email:"roys@gmail.com",
-        password:"1234"
-
-    },
-    {
-        id:1002,
-        userName:"Royston",
-        email:"royston@gmail.com",
-        password:"12345"
-
-    }
-]
-router.get('/all',(req, res)=>{
-    res.send(user);
+router.get('/all',async(req, res)=>{
+    const getvalue= await userModel.find()
+    res.json(getvalue);
 } )
 
 // fetching the data after filtering
-router.get('/all/:id',(req,res)=>{
+router.get('/all/:id',async(req,res)=>{
     const id=req.params.id;
-    // console.log(id);
-    const filteredArray= user.filter((element)=>{
-        // console.log(element.id);
+    
+    if( !mongoose.Types.ObjectId.isValid(id)) res.status(400).json({ Message:`Uset Id: ${id} is not valid`})
 
-        return element.id.toString()===id;
-
-    })
-    // console.log(filteredArray)
-    // console.log(user);
-    res.send(filteredArray);
+    const getvalue= await userModel.find({_id:id})
+    if(Object.keys(getvalue).length){
+        res.json(getvalue);
+    }
+   else {
+        res.json({
+            Message:`No user from ${id}` 
+        })
+    }
 })
 
-router.patch('/all/:id',(req,res)=>{
+router.patch('/all/:id',async(req,res)=>{
     const id =req.params.id;
-    const findArray=user.find((element)=>{
-        return element.id.toString()===id;
-        
-    })
-        // console.log(findArray);
-        // console.log(req.body);
-        // console.log("*".repeat(50));
-        // console.log(Object.keys(req.body).length);
-        // console.log(findArray && Object.keys(req.body).length)
-  
+    
+    if( !mongoose.Types.ObjectId.isValid(id)) res.status(400).json({ Message:`Uset Id: ${id} is not valid`})
 
-    if(findArray && Object.keys(req.body).length){
-        const index= user.indexOf(findArray);
-        // console.log(index);
-        user[index]=req.body
-        res.send(user[index]);
+    const getvalue= await userModel.findOne({_id:id})
+
+
+    if(getvalue && Object.keys(req.body).length){
+        await userModel.findByIdAndUpdate(id,req.body)
+        res.json(req.body);
     }
     else{
         res.send("FAilled to update data");
@@ -63,19 +46,18 @@ router.patch('/all/:id',(req,res)=>{
 
 })
 
-router.delete('/all/:id',(req,res)=>{
+router.delete('/all/:id',async(req,res)=>{
     const id =req.params.id;
-    const findArray=user.find((element)=>{
-        return element.id.toString()===id;
-        
-    })
-    if(findArray){
-        const index= user.indexOf(findArray);
-        console.log(index);
 
-        const deletedValue=user.splice(index,1);
+    if( !mongoose.Types.ObjectId.isValid(id)) res.status(400).json({ Message:`Uset Id: ${id} is not valid`})
 
-        res.send(deletedValue);
+    const getDeletingvalue= await userModel.findOne({_id:id})
+   
+    if(getDeletingvalue){
+        await userModel.findByIdAndRemove(id)
+        res.json({
+            Message : "user info deleted sucesfully"
+        })
 
     }
     else{
@@ -83,19 +65,22 @@ router.delete('/all/:id',(req,res)=>{
     }
 })
 
-router.delete('/all',(req,res)=>{
-    if(user.length){;
-        user.splice(0,user.length)
-        res.send("all elemnts are deleted");
+router.delete('/all',async(req,res)=>{
+    const Users= await userModel.find()
+
+    if(Users.length){;
+        await userModel.remove()
+        res.send("all user info are deleted");
     }
     else{
-        res.send("FAilled to Delete data");
+        res.send("No Users to delete");
     }
 })
 
-router.post('/register',(req,res)=>{
+router.post('/register',async(req,res)=>{
     // Adding Element inside a array
-    user.push(req.body)
+    const cratUser=new userModel(req.body)
+    await cratUser.save()
     res.send(req.body)
 })
 
